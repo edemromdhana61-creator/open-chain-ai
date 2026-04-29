@@ -2,70 +2,30 @@
 
 Die ultimative KI-Agenten Orchestration Platform.
 
-## ⚡ Schnellstart (30 Sekunden)
+## ⚡ Schnellstart (5 Minuten)
 
 ```bash
 # 1. Repo klonen
 git clone https://github.com/YOUR-USERNAME/open-chain-ai.git
 cd open-chain-ai
 
-# 2. Setup
+# 2. Setup (installiert Docker, PostgreSQL, etc.)
 ./setup.sh
 
-# 3. Starten
-pnpm dev
+# 3. Fertig!
 ```
 
-**Fertig!** Dashboard öffnet sich unter http://localhost:3000
+**Dashboard:** http://localhost  
+**API:** http://localhost:3000
 
-## Systemanforderungen
+## Was macht das Setup?
 
-| Komponente | Minimum |
-|------------|---------|
-| Node.js | 20+ |
-| RAM | 4GB |
-| Festplatte | 10GB |
-
-## Installation
-
-### 1. Node.js installieren
-
-```bash
-# macOS/Linux
-brew install node pnpm
-
-# Windows
-# Lade von https://nodejs.org/
-# npm install -g pnpm
-```
-
-### 2. Ollama installieren (für KI-Modelle)
-
-```bash
-curl -fsSL https://ollama.com/install.sh | sh
-ollama pull llama3.2
-```
-
-### 3. Open Chain AI starten
-
-```bash
-git clone https://github.com/YOUR-USERNAME/open-chain-ai.git
-cd open-chain-ai
-./setup.sh
-pnpm dev
-```
-
-## Was ist das?
-
-Open Chain AI ist eine **KI-Agenten Orchestration Platform**.
-
-Du hast mehrere KI-Agenten die für dich arbeiten:
-- **OpenClaw** - Projektmanager
-- **Hermes** - Senior Developer  
-- **Claude** - Researcher
-- **Codex** - DevOps Engineer
-
-Jeder Agent kann Aufgaben übernehmen, Code schreiben, recherchieren oder deployen.
+Das `setup.sh` Script:
+1. ✅ Prüft ob Docker installiert ist
+2. ✅ Installiert Docker automatisch wenn nicht
+3. ✅ Startet PostgreSQL + pgvector Container
+4. ✅ Prüft/installiert Ollama für KI-Modelle
+5. ✅ Baut und startet alles
 
 ## Features
 
@@ -73,52 +33,59 @@ Jeder Agent kann Aufgaben übernehmen, Code schreiben, recherchieren oder deploy
 - 🎯 **Task Management** - Aufgaben zuweisen und verfolgen
 - 💬 **Chat Interface** - Mit Agenten sprechen
 - 📊 **Dashboard** - Alles im Blick
-- ⚡ **Einfach** - Setup in 30 Sekunden
+- 🔒 **Docker Sandbox** - Isolierte Code-Ausführung
+- 🧠 **PostgreSQL + pgvector** - Für Vektor-Suche
+
+## Systemanforderungen
+
+| Komponente | Minimum |
+|------------|---------|
+| Docker | 24.0+ |
+| RAM | 8GB |
+| Festplatte | 20GB |
+
+## Manuelle Installation
+
+Falls das Setup nicht funktioniert:
+
+```bash
+# 1. Docker installieren
+curl -fsSL https://get.docker.com | sh
+
+# 2. Ollama installieren
+curl -fsSL https://ollama.com/install.sh | sh
+
+# 3. Projekt starten
+docker-compose up -d
+```
 
 ## API
 
-### Agenten ausführen
-
+### Agenten auflisten
 ```bash
-curl -X POST http://localhost:3000/api/v1/agents/1/execute \
+curl http://localhost:3000/api/v1/agents
+```
+
+### Task erstellen
+```bash
+curl -X POST http://localhost:3000/api/v1/tasks \
   -H "Content-Type: application/json" \
-  -d '{"task": "Erkläre was Docker ist"}'
+  -d '{"title":"API bauen","goalId":"..."}'
 ```
 
 ### Health Check
-
 ```bash
 curl http://localhost:3000/health
 ```
 
 ## Tech Stack
 
-- **Backend**: Fastify + TypeScript + SQLite
+- **Backend**: Fastify + TypeScript
+- **Datenbank**: PostgreSQL + pgvector
 - **Frontend**: React + TailwindCSS
-- **KI**: Ollama (lokale LLMs)
-- **Datenbank**: SQLite (kein Docker nötig!)
-
-## Keine Abhängigkeiten!
-
-✅ Kein Docker nötig  
-✅ Keine Cloud-Anbieter  
-✅ Keine API Keys  
-✅ Läuft komplett lokal  
-
-## Troubleshooting
-
-### "Ollama not found"
-```bash
-curl -fsSL https://ollama.com/install.sh | sh
-ollama pull llama3.2
-```
-
-### "Port 3000 belegt"
-```bash
-# Port ändern
-PORT=3001 pnpm dev
-```
+- **KI**: Ollama
+- **Sandbox**: Docker
 
 ## Lizenz
 
-MIT - Mach damit was du willst.
+MIT
