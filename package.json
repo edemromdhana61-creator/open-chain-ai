@@ -1,0 +1,25 @@
+{
+  "name": "open-chain-ai",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "pnpm --filter @open-chain-ai/api dev & pnpm --filter @open-chain-ai/web dev",
+    "build": "pnpm -r build",
+    "test": "pnpm -r test",
+    "db:generate": "pnpm --filter @open-chain-ai/db generate",
+    "db:migrate": "pnpm --filter @open-chain-ai/db migrate",
+    "db:studio": "pnpm --filter @open-chain-ai/db studio",
+    "lint": "eslint . --ext .ts,.tsx",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "typescript": "^5.7.3",
+    "eslint": "^9.0.0",
+    "prettier": "^3.4.0"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "packageManager": "pnpm@9.15.4"
+}

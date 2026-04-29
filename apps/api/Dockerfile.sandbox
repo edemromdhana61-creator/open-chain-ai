@@ -1,0 +1,32 @@
+# Sandbox Image für Agent Tasks
+FROM node:20-alpine
+
+# ⚠️ SECURITY: Non-root user
+RUN addgroup -g 1000 -S agent && \
+    adduser -u 1000 -S agent -G agent
+
+# Installiere Tools die Agenten brauchen
+RUN apk add --no-cache \
+    git \
+    python3 \
+    py3-pip \
+    curl \
+    bash
+
+# ⚠️ SECURITY: Vorkonfigurierte npm/pip (kein Netzwerk nötig)
+RUN npm install -g \
+    typescript \
+    tsx \
+    nodemon \
+    @types/node
+
+# Arbeitsverzeichnis
+WORKDIR /work
+
+# ⚠️ SECURITY: Read-only root, nur /work beschreibbar
+RUN chown -R agent:agent /work
+
+USER agent
+
+# Default: nichts ausführen (wird von Control Plane injiziert)
+CMD ["sleep", "infinity"]
