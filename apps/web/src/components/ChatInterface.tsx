@@ -12,7 +12,7 @@ interface ChatMessage {
 const mockMessages: ChatMessage[] = [
   {
     id: '1',
-    from: 'Eddie',
+    from: 'User',
     content: 'Hey, wie läuft der Task?',
     timestamp: new Date(),
     isAgent: false,
@@ -40,7 +40,7 @@ export function ChatInterface() {
 
     const newMessage: ChatMessage = {
       id: Date.now().toString(),
-      from: 'Eddie',
+      from: 'User',
       content: input,
       timestamp: new Date(),
       isAgent: false,

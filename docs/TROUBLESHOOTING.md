@@ -245,7 +245,7 @@ docker-compose restart db
 1. Check logs: `docker-compose logs -f`
 2. Check health: `curl http://localhost:3000/health`
 3. Check docs: https://docs.open-chain-ai.com
-4. Open issue: https://github.com/eddie/open-chain-ai/issues
+4. Open issue: https://github.com/YOUR-USERNAME/open-chain-ai/issues
 
 ## Emergency Procedures
 
@@ -268,4 +268,4 @@ docker-compose restart db
 2. Check logs: `docker-compose logs | grep ERROR`
 3. Change secrets
 4. Restart: `docker-compose up -d`
-5. Report: https://github.com/eddie/open-chain-ai/security
+5. Report: https://github.com/YOUR-USERNAME/open-chain-ai/security

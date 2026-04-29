@@ -12,7 +12,7 @@
 ### 1. Clone Repository
 
 ```bash
-git clone https://github.com/eddie/open-chain-ai.git
+git clone https://github.com/YOUR-USERNAME/open-chain-ai.git
 cd open-chain-ai
 ```
 
@@ -275,6 +275,6 @@ docker-compose exec api pnpm db:migrate:rollback
 ## Support
 
 For issues and questions:
-- GitHub Issues: https://github.com/eddie/open-chain-ai/issues
+- GitHub Issues: https://github.com/YOUR-USERNAME/open-chain-ai/issues
 - Documentation: https://docs.open-chain-ai.com
 - Discord: https://discord.gg/open-chain-ai

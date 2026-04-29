@@ -14,7 +14,7 @@
 
 ```bash
 # Clone
-git clone https://github.com/eddie/open-chain-ai.git
+git clone https://github.com/YOUR-USERNAME/open-chain-ai.git
 cd open-chain-ai
 
 # Install

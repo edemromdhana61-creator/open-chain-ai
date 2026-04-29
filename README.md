@@ -20,7 +20,7 @@ Dies ist ein **Work in Progress**. Einige Features sind noch nicht vollständig 
 
 ```bash
 # 1. Repository klonen
-git clone https://github.com/eddie/open-chain-ai.git
+git clone https://github.com/YOUR-USERNAME/open-chain-ai.git
 cd open-chain-ai
 
 # 2. Automatisches Setup
