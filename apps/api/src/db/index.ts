@@ -1,7 +1,6 @@
 import { drizzle } from 'drizzle-orm/node-postgres';
 import { Pool } from 'pg';
 import { config } from '../config.js';
-import * as schema from './schema.js';
 
 const pool = new Pool({
   connectionString: config.DATABASE_URL,
@@ -11,7 +10,7 @@ pool.on('error', (err) => {
   console.error('PostgreSQL error', err);
 });
 
-export const db = drizzle(pool, { schema });
+export const db = drizzle(pool);
 
 export async function checkDatabase(): Promise<boolean> {
   try {
