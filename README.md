@@ -2,92 +2,123 @@
 
 Die ultimative KI-Agenten Orchestration Platform.
 
-## ⚠️ WICHTIG
-
-Dies ist ein **Work in Progress**. Einige Features sind noch nicht vollständig implementiert.
-
-## Features
-
-- 🤖 **Multi-Agent Support**: OpenClaw, Hermes, Claude Code, Codex, Cursor
-- ☁️ **Ollama Cloud Pro**: Direkte API Anbindung (keine lokale Hardware)
-- 🔒 **Docker Sandbox**: Isolierte Code-Ausführung mit Resource Limits
-- ⚡ **Circuit Breaker**: Schutz vor Endlosschleifen (max 3 Revisions)
-- 🧠 **pgvector Memory**: Vektor-Suche für effiziente Context-Wiederverwendung
-- 💬 **Echtzeit-Chat**: Agenten sprechen untereinander und mit dir
-- 📊 **Dashboard**: Live-Status aller Agenten und Tasks
-
-## Schnellstart
+## ⚡ Schnellstart (30 Sekunden)
 
 ```bash
-# 1. Repository klonen
+# 1. Repo klonen
 git clone https://github.com/YOUR-USERNAME/open-chain-ai.git
 cd open-chain-ai
 
-# 2. Automatisches Setup
-./scripts/setup.sh
+# 2. Setup
+./setup.sh
 
-# 3. Ollama Token eintragen
-# Bearbeite .env und setze OLLAMA_TOKEN
-
-# 4. Starten
-docker-compose up -d
+# 3. Starten
+pnpm dev
 ```
+
+**Fertig!** Dashboard öffnet sich unter http://localhost:3000
 
 ## Systemanforderungen
 
-- Docker & Docker Compose
-- Node.js 20+
-- pnpm
-- Ollama Cloud Pro Account
+| Komponente | Minimum |
+|------------|---------|
+| Node.js | 20+ |
+| RAM | 4GB |
+| Festplatte | 10GB |
+
+## Installation
+
+### 1. Node.js installieren
+
+```bash
+# macOS/Linux
+brew install node pnpm
+
+# Windows
+# Lade von https://nodejs.org/
+# npm install -g pnpm
+```
+
+### 2. Ollama installieren (für KI-Modelle)
+
+```bash
+curl -fsSL https://ollama.com/install.sh | sh
+ollama pull llama3.2
+```
+
+### 3. Open Chain AI starten
+
+```bash
+git clone https://github.com/YOUR-USERNAME/open-chain-ai.git
+cd open-chain-ai
+./setup.sh
+pnpm dev
+```
+
+## Was ist das?
+
+Open Chain AI ist eine **KI-Agenten Orchestration Platform**.
+
+Du hast mehrere KI-Agenten die für dich arbeiten:
+- **OpenClaw** - Projektmanager
+- **Hermes** - Senior Developer  
+- **Claude** - Researcher
+- **Codex** - DevOps Engineer
+
+Jeder Agent kann Aufgaben übernehmen, Code schreiben, recherchieren oder deployen.
+
+## Features
+
+- 🤖 **Echte KI-Agenten** - Mit Ollama LLMs
+- 🎯 **Task Management** - Aufgaben zuweisen und verfolgen
+- 💬 **Chat Interface** - Mit Agenten sprechen
+- 📊 **Dashboard** - Alles im Blick
+- ⚡ **Einfach** - Setup in 30 Sekunden
+
+## API
+
+### Agenten ausführen
+
+```bash
+curl -X POST http://localhost:3000/api/v1/agents/1/execute \
+  -H "Content-Type: application/json" \
+  -d '{"task": "Erkläre was Docker ist"}'
+```
+
+### Health Check
+
+```bash
+curl http://localhost:3000/health
+```
 
 ## Tech Stack
 
-| Komponente | Technologie |
-|------------|-------------|
-| API Server | Fastify + TypeScript |
-| Datenbank | PostgreSQL 16 + pgvector |
-| Message Broker | NATS |
-| Frontend | React 19 + TailwindCSS |
-| Sandbox | Docker |
+- **Backend**: Fastify + TypeScript + SQLite
+- **Frontend**: React + TailwindCSS
+- **KI**: Ollama (lokale LLMs)
+- **Datenbank**: SQLite (kein Docker nötig!)
 
-## Projekt Struktur
+## Keine Abhängigkeiten!
 
-```
-open-chain-ai/
-├── apps/
-│   ├── api/           # Fastify API Server
-│   └── web/           # React Frontend
-├── docs/              # Dokumentation
-├── scripts/           # Setup Scripts
-├── docker-compose.yml
-└── README.md
-```
-
-## API Dokumentation
-
-Siehe [docs/API.md](docs/API.md)
-
-## Deployment
-
-Siehe [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md)
+✅ Kein Docker nötig  
+✅ Keine Cloud-Anbieter  
+✅ Keine API Keys  
+✅ Läuft komplett lokal  
 
 ## Troubleshooting
 
-Siehe [docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md)
+### "Ollama not found"
+```bash
+curl -fsSL https://ollama.com/install.sh | sh
+ollama pull llama3.2
+```
 
-## Bekannte Probleme
+### "Port 3000 belegt"
+```bash
+# Port ändern
+PORT=3001 pnpm dev
+```
 
-- ⚠️ Tests benötigen laufende Datenbank
-- ⚠️ Sandbox benötigt Docker
-- ⚠️ Ollama Cloud Token erforderlich
+## Lizenz
 
-## Roadmap
-
-- [ ] Vollständige Test-Abdeckung
-- [ ] Agent-Adapter Implementierung
-- [ ] Production-Ready Deployment
-- [ ] Monitoring & Alerting
-
-## License
-
-MIT
+MIT - Mach damit was du willst.
