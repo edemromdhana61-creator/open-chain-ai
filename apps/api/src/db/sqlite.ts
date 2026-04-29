@@ -6,7 +6,6 @@ const sqlite = new Database('./data/openchain.db');
 sqlite.pragma('journal_mode = WAL');
 
 export const db = drizzle(sqlite);
-export { sqlite };
 
 // Health check
 export function checkDatabase(): boolean {

@@ -1,55 +1,50 @@
-import { config } from '../config.js';
+// ECHTE Ollama API Integration
+// Dokumentation: https://docs.ollama.com/api
 
-interface OllamaResponse {
-  message?: {
-    content?: string;
-  };
-  response?: string;
-  error?: string;
+const OLLAMA_BASE_URL = process.env.OLLAMA_HOST || 'http://localhost:11434';
+
+export interface OllamaMessage {
+  role: 'system' | 'user' | 'assistant';
+  content: string;
 }
 
-class OllamaCloudAdapter {
+export interface OllamaChatResponse {
+  message: {
+    role: string;
+    content: string;
+  };
+  done: boolean;
+}
+
+class OllamaAdapter {
   private baseUrl: string;
-  private token: string;
-  private modelTemps: Record<string, number>;
 
   constructor() {
-    this.baseUrl = config.OLLAMA_HOST;
-    this.token = config.OLLAMA_TOKEN;
-    this.modelTemps = {
-      'kimi.k2.6:cloud': 0.7,
-      'glm-5.1:cloud': 0.3,
-      'minimax-m2:cloud': 0.5,
-    };
+    this.baseUrl = OLLAMA_BASE_URL;
   }
 
-  async chat(model: string, messages: { role: string; content: string }[]): Promise<string> {
+  async chat(model: string, messages: OllamaMessage[]): Promise<string> {
     try {
       const response = await fetch(`${this.baseUrl}/api/chat`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${this.token}`,
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           model,
           messages,
           stream: false,
-          options: {
-            temperature: this.modelTemps[model] || 0.5,
-          },
         }),
       });
 
       if (!response.ok) {
-        throw new Error(`Ollama API error: ${response.status}`);
+        const error = await response.text();
+        throw new Error(`Ollama API error: ${response.status} - ${error}`);
       }
 
-      const data: OllamaResponse = await response.json();
-      return data.message?.content || data.response || '';
+      const data: OllamaChatResponse = await response.json();
+      return data.message?.content || '';
     } catch (error) {
-      console.error('Ollama chat failed:', error);
-      return `Error: ${error.message}`;
+      console.error('❌ Ollama chat failed:', error);
+      return `Error: ${error.message}. Is Ollama running?`;
     }
   }
 
@@ -57,39 +52,30 @@ class OllamaCloudAdapter {
     try {
       const response = await fetch(`${this.baseUrl}/api/generate`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${this.token}`,
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           model,
           prompt,
           stream: false,
-          options: {
-            temperature: this.modelTemps[model] || 0.5,
-          },
         }),
       });
 
       if (!response.ok) {
-        throw new Error(`Ollama API error: ${response.status}`);
+        const error = await response.text();
+        throw new Error(`Ollama API error: ${response.status} - ${error}`);
       }
 
-      const data: OllamaResponse = await response.json();
+      const data = await response.json();
       return data.response || '';
     } catch (error) {
-      console.error('Ollama generate failed:', error);
-      return `Error: ${error.message}`;
+      console.error('❌ Ollama generate failed:', error);
+      return `Error: ${error.message}. Is Ollama running?`;
     }
   }
 
   async isHealthy(): Promise<boolean> {
     try {
-      const response = await fetch(`${this.baseUrl}/api/tags`, {
-        headers: {
-          'Authorization': `Bearer ${this.token}`,
-        },
-      });
+      const response = await fetch(`${this.baseUrl}/api/tags`, { method: 'GET' });
       return response.ok;
     } catch {
       return false;
@@ -98,12 +84,7 @@ class OllamaCloudAdapter {
 
   async listModels(): Promise<string[]> {
     try {
-      const response = await fetch(`${this.baseUrl}/api/tags`, {
-        headers: {
-          'Authorization': `Bearer ${this.token}`,
-        },
-      });
-
+      const response = await fetch(`${this.baseUrl}/api/tags`);
       if (!response.ok) return [];
 
       const data = await response.json();
@@ -112,6 +93,26 @@ class OllamaCloudAdapter {
       return [];
     }
   }
+
+  async pullModel(model: string): Promise<void> {
+    console.log(`📥 Pulling model: ${model}...`);
+    try {
+      const response = await fetch(`${this.baseUrl}/api/pull`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: model, stream: false }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`Failed to pull model: ${response.status}`);
+      }
+
+      console.log(`✅ Model ${model} ready`);
+    } catch (error) {
+      console.error(`❌ Failed to pull model ${model}:`, error);
+      throw error;
+    }
+  }
 }
 
-export const ollama = new OllamaCloudAdapter();
+export const ollama = new OllamaAdapter();

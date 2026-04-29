@@ -1,14 +1,11 @@
 import Fastify from 'fastify';
 import cors from '@fastify/cors';
-import websocket from '@fastify/websocket';
-import { config, CORS_ORIGINS } from './config.js';
-import { checkDatabase } from './db/index.js';
+import { config } from './config.js';
+import { checkDatabase, db } from './db/sqlite.js';
+import { agents } from './db/schema-sqlite.js';
 import { agentRoutes } from './routes/agents.js';
 import { taskRoutes } from './routes/tasks.js';
-import { heartbeatRoutes } from './routes/heartbeat.js';
-import { messageRoutes } from './routes/messages.js';
-import { dashboardRoutes } from './routes/dashboard.js';
-import { sandbox } from './services/sandbox.js';
+import { ollama } from './services/ollama.js';
 
 const app = Fastify({
   logger: true,
@@ -16,63 +13,76 @@ const app = Fastify({
 
 // CORS
 await app.register(cors, {
-  origin: CORS_ORIGINS,
+  origin: true,
   credentials: true,
 });
 
-// WebSocket
-await app.register(websocket);
-
 // Health check
 app.get('/health', async () => {
-  const dbHealthy = await checkDatabase();
+  const dbHealthy = checkDatabase();
+  const ollamaHealthy = await ollama.isHealthy();
+
   return {
-    status: dbHealthy ? 'healthy' : 'degraded',
+    status: dbHealthy && ollamaHealthy ? 'healthy' : 'degraded',
     timestamp: new Date().toISOString(),
+    services: {
+      api: true,
+      database: dbHealthy,
+      ollama: ollamaHealthy,
+    },
   };
 });
 
-// API Routes v1
-await app.register(agentRoutes, { prefix: '/api/v1/agents' });
-await app.register(taskRoutes, { prefix: '/api/v1/tasks' });
-await app.register(heartbeatRoutes, { prefix: '/api/v1/heartbeat' });
-await app.register(messageRoutes, { prefix: '/api/v1/messages' });
-await app.register(dashboardRoutes, { prefix: '/api/v1/dashboard' });
+// Ollama status
+app.get('/api/v1/ollama/status', async () => {
+  const healthy = await ollama.isHealthy();
+  const models = await ollama.listModels();
 
-// WebSocket for real-time updates
-app.get('/api/v1/ws', { websocket: true }, (connection, req) => {
-  connection.socket.on('message', (message) => {
-    try {
-      const data = JSON.parse(message.toString());
-      // Broadcast to all connected clients
-      app.websocketServer?.clients.forEach((client) => {
-        if (client.readyState === 1 && client !== connection.socket) {
-          client.send(JSON.stringify(data));
-        }
-      });
-    } catch {
-      connection.socket.send(JSON.stringify({ error: 'Invalid message format' }));
-    }
-  });
+  return {
+    status: healthy ? 'connected' : 'disconnected',
+    models,
+  };
 });
 
-// Cleanup job (every 5 minutes)
-setInterval(async () => {
-  try {
-    await sandbox.cleanupZombies();
-    app.log.info('Cleaned up zombie containers');
-  } catch (err) {
-    app.log.error(err, 'Failed to cleanup zombie containers');
+// API Routes
+await app.register(agentRoutes, { prefix: '/api/v1/agents' });
+await app.register(taskRoutes, { prefix: '/api/v1/tasks' });
+
+// Seed default agents
+const seedAgents = async () => {
+  const existing = await db.select().from(agents);
+  if (existing.length === 0) {
+    console.log('🌱 Seeding default agents...');
+    await db.insert(agents).values([
+      { name: 'OpenClaw', adapterType: 'openclaw', role: 'Project Manager', status: 'idle' },
+      { name: 'Hermes', adapterType: 'hermes', role: 'Senior Developer', status: 'idle' },
+      { name: 'Claude', adapterType: 'claude', role: 'Researcher', status: 'idle' },
+      { name: 'Codex', adapterType: 'codex', role: 'DevOps Engineer', status: 'idle' },
+    ]);
   }
-}, 5 * 60 * 1000);
+};
 
 // Start server
 try {
+  await seedAgents();
+
   await app.listen({ port: parseInt(config.PORT), host: '0.0.0.0' });
-  app.log.info(`🚀 Server running on http://localhost:${config.PORT}`);
-  app.log.info(`📊 Dashboard: http://localhost:${config.PORT}/api/v1/dashboard`);
-  app.log.info(`🔌 WebSocket: ws://localhost:${config.PORT}/api/v1/ws`);
+
+  console.log('🚀 Open Chain AI Server running!');
+  console.log(`📊 Dashboard: http://localhost:${config.PORT}`);
+  console.log(`🔍 Health:     http://localhost:${config.PORT}/health`);
+
+  // Check Ollama
+  const ollamaHealthy = await ollama.isHealthy();
+  if (ollamaHealthy) {
+    console.log('✅ Ollama connected');
+    const models = await ollama.listModels();
+    console.log(`📦 Available models: ${models.join(', ')}`);
+  } else {
+    console.log('⚠️  Ollama not found. Install: curl -fsSL https://ollama.com/install.sh | sh');
+    console.log('   Then pull a model: ollama pull llama3.2');
+  }
 } catch (err) {
-  app.log.error(err);
+  console.error('❌ Failed to start server:', err);
   process.exit(1);
 }
