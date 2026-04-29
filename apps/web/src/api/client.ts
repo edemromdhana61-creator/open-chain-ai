@@ -1,4 +1,4 @@
-const API_URL = 'http://localhost:3000';
+import { useState, useEffect, useCallback } from 'react';
 
 export interface Agent {
   id: string;
@@ -7,13 +7,15 @@ export interface Agent {
   role: string;
   status: 'idle' | 'working' | 'error' | 'paused';
   lastHeartbeat?: string;
+  budgetUsed?: string;
+  budgetLimit?: string;
 }
 
 export interface Task {
   id: string;
   title: string;
-  status: string;
-  priority: string;
+  status: 'pending' | 'in_progress' | 'review' | 'done' | 'blocked';
+  priority: 'low' | 'medium' | 'high' | 'critical';
   assignee?: string;
 }
 
@@ -32,81 +34,127 @@ export interface DashboardData {
   };
 }
 
+export interface SystemStatus {
+  status: string;
+  timestamp: string;
+  services: {
+    api: boolean;
+    database: boolean;
+    ollama: boolean;
+    sandbox: boolean;
+  };
+}
+
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+
+// Helper for API calls
+async function apiCall(endpoint: string, options: RequestInit = {}) {
+  const response = await fetch(`${API_URL}${endpoint}`, {
+    ...options,
+    headers: {
+      'Content-Type': 'application/json',
+      ...options.headers,
+    },
+  });
+
+  if (!response.ok) {
+    const error = await response.text();
+    throw new Error(error || `HTTP ${response.status}`);
+  }
+
+  return response.json();
+}
+
 // Agents API
 export async function fetchAgents(): Promise<Agent[]> {
-  const response = await fetch(`${API_URL}/api/v1/agents`);
-  if (!response.ok) throw new Error('Failed to fetch agents');
-  const data = await response.json();
-  return data.agents;
+  return apiCall('/api/v1/agents').then((data) => data.agents);
 }
 
 export async function createAgent(agent: Partial<Agent>): Promise<Agent> {
-  const response = await fetch(`${API_URL}/api/v1/agents`, {
+  return apiCall('/api/v1/agents', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(agent),
-  });
-  if (!response.ok) throw new Error('Failed to create agent');
-  const data = await response.json();
-  return data.agent;
+  }).then((data) => data.agent);
+}
+
+export async function pauseAgent(agentId: string): Promise<void> {
+  await apiCall(`/api/v1/agents/${agentId}/pause`, { method: 'POST' });
+}
+
+export async function resumeAgent(agentId: string): Promise<void> {
+  await apiCall(`/api/v1/agents/${agentId}/resume`, { method: 'POST' });
 }
 
 // Tasks API
 export async function fetchTasks(): Promise<Task[]> {
-  const response = await fetch(`${API_URL}/api/v1/tasks`);
-  if (!response.ok) throw new Error('Failed to fetch tasks');
-  const data = await response.json();
-  return data.tasks;
+  return apiCall('/api/v1/tasks').then((data) => data.tasks);
 }
 
-export async function assignTask(taskId: string, assigneeId: string): Promise<Task> {
-  const response = await fetch(`${API_URL}/api/v1/tasks/${taskId}/assign`, {
+export async function createTask(task: Partial<Task>): Promise<Task> {
+  return apiCall('/api/v1/tasks', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(task),
+  }).then((data) => data.task);
+}
+
+export async function assignTask(taskId: string, assigneeId: string): Promise<void> {
+  await apiCall(`/api/v1/tasks/${taskId}/assign`, {
+    method: 'POST',
     body: JSON.stringify({ assigneeId }),
   });
-  if (!response.ok) throw new Error('Failed to assign task');
-  const data = await response.json();
-  return data.task;
+}
+
+export async function completeTask(taskId: string): Promise<void> {
+  await apiCall(`/api/v1/tasks/${taskId}/complete`, { method: 'POST' });
 }
 
 // Dashboard API
 export async function fetchDashboard(): Promise<DashboardData> {
-  const response = await fetch(`${API_URL}/api/v1/dashboard`);
-  if (!response.ok) throw new Error('Failed to fetch dashboard');
-  return response.json();
+  return apiCall('/api/v1/dashboard');
 }
 
-// Messages API
-export async function sendMessage(message: {
-  from: string;
-  to: string;
-  type: string;
-  payload?: Record<string, unknown>;
-}): Promise<void> {
-  const response = await fetch(`${API_URL}/api/v1/messages`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(message),
-  });
-  if (!response.ok) throw new Error('Failed to send message');
+// System Status
+export async function checkHealth(): Promise<SystemStatus> {
+  return apiCall('/health');
 }
 
-// Heartbeat API
-export async function sendHeartbeat(heartbeat: {
-  agentId: string;
-  status: string;
-  progress?: number;
-}): Promise<void> {
-  const response = await fetch(`${API_URL}/api/v1/heartbeat`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(heartbeat),
-  });
-  if (!response.ok) throw new Error('Failed to send heartbeat');
+// Ollama Models
+export async function listOllamaModels(): Promise<string[]> {
+  return apiCall('/api/v1/ollama/models').then((data) => data.models);
 }
 
 // WebSocket
 export function createWebSocket(): WebSocket {
   return new WebSocket(`ws://localhost:3000/api/v1/ws`);
+}
+
+// React Hook for live data
+export function useApiPolling<T>(
+  fetchFn: () => Promise<T>,
+  interval = 5000
+) {
+  const [data, setData] = useState<T | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const refresh = useCallback(async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const result = await fetchFn();
+      setData(result);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Unknown error');
+    } finally {
+      setLoading(false);
+    }
+  }, [fetchFn]);
+
+  useEffect(() => {
+    refresh();
+    const timer = setInterval(refresh, interval);
+    return () => clearInterval(timer);
+  }, [refresh, interval]);
+
+  return { data, loading, error, refresh };
 }

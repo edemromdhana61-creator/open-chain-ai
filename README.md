@@ -2,6 +2,10 @@
 
 Die ultimative KI-Agenten Orchestration Platform.
 
+## ⚠️ WICHTIG
+
+Dies ist ein **Work in Progress**. Einige Features sind noch nicht vollständig implementiert.
+
 ## Features
 
 - 🤖 **Multi-Agent Support**: OpenClaw, Hermes, Claude Code, Codex, Cursor
@@ -12,6 +16,30 @@ Die ultimative KI-Agenten Orchestration Platform.
 - 💬 **Echtzeit-Chat**: Agenten sprechen untereinander und mit dir
 - 📊 **Dashboard**: Live-Status aller Agenten und Tasks
 
+## Schnellstart
+
+```bash
+# 1. Repository klonen
+git clone https://github.com/eddie/open-chain-ai.git
+cd open-chain-ai
+
+# 2. Automatisches Setup
+./scripts/setup.sh
+
+# 3. Ollama Token eintragen
+# Bearbeite .env und setze OLLAMA_TOKEN
+
+# 4. Starten
+docker-compose up -d
+```
+
+## Systemanforderungen
+
+- Docker & Docker Compose
+- Node.js 20+
+- pnpm
+- Ollama Cloud Pro Account
+
 ## Tech Stack
 
 | Komponente | Technologie |
@@ -19,64 +47,8 @@ Die ultimative KI-Agenten Orchestration Platform.
 | API Server | Fastify + TypeScript |
 | Datenbank | PostgreSQL 16 + pgvector |
 | Message Broker | NATS |
-| Frontend | React 18 + TailwindCSS |
+| Frontend | React 19 + TailwindCSS |
 | Sandbox | Docker |
-
-## Quick Start
-
-```bash
-# 1. Repository klonen
-git clone https://github.com/eddie/open-chain-ai.git
-cd open-chain-ai
-
-# 2. Dependencies installieren
-pnpm install
-
-# 3. Umgebungsvariablen setzen
-cp .env.example .env
-# OLLAMA_CLOUD_TOKEN setzen
-
-# 4. Datenbank starten
-docker-compose up -d db nats
-
-# 5. Migrationen ausführen
-pnpm db:migrate
-
-# 6. Entwicklung starten
-pnpm dev
-```
-
-## Docker Sandbox
-
-Jeder Task läuft in einem isolierten Container:
-
-```bash
-# Rootless
---user 1000:1000
-
-# Resource Limits
---cpus=1 --memory=512m
-
-# Network Isolation
---network none
-
-# Read-Only FS
---read-only --tmpfs /work
-```
-
-## Circuit Breaker
-
-- Max 3 Revisions pro Code-Block
-- Danach: Task blocked + menschliches Eingreifen
-- Schützt vor Token-Verschwendung
-
-## Ollama Cloud Modelle
-
-| Modell | Rolle |
-|--------|-------|
-| kimi.k2.6:cloud | Reviewer & General |
-| glm-5.1:cloud | Coder |
-| minimax-m2:cloud | Planner |
 
 ## Projekt Struktur
 
@@ -85,12 +57,36 @@ open-chain-ai/
 ├── apps/
 │   ├── api/           # Fastify API Server
 │   └── web/           # React Frontend
-├── packages/
-│   ├── shared/        # Gemeinsame Types
-│   └── db/            # Datenbank Schema
+├── docs/              # Dokumentation
+├── scripts/           # Setup Scripts
 ├── docker-compose.yml
 └── README.md
 ```
+
+## API Dokumentation
+
+Siehe [docs/API.md](docs/API.md)
+
+## Deployment
+
+Siehe [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md)
+
+## Troubleshooting
+
+Siehe [docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md)
+
+## Bekannte Probleme
+
+- ⚠️ Tests benötigen laufende Datenbank
+- ⚠️ Sandbox benötigt Docker
+- ⚠️ Ollama Cloud Token erforderlich
+
+## Roadmap
+
+- [ ] Vollständige Test-Abdeckung
+- [ ] Agent-Adapter Implementierung
+- [ ] Production-Ready Deployment
+- [ ] Monitoring & Alerting
 
 ## License
 
