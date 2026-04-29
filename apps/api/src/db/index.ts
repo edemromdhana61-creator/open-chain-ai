@@ -1,17 +1,21 @@
-import Database from 'better-sqlite3';
-import { drizzle } from 'drizzle-orm/better-sqlite3';
+import { drizzle } from 'drizzle-orm/node-postgres';
+import { Pool } from 'pg';
+import { config } from '../config.js';
+import * as schema from './schema.js';
 
-// SQLite für einfache Einrichtung - kein Docker nötig!
-const sqlite = new Database('./data/openchain.db');
-sqlite.pragma('journal_mode = WAL');
+const pool = new Pool({
+  connectionString: config.DATABASE_URL,
+});
 
-export const db = drizzle(sqlite);
-export { sqlite };
+pool.on('error', (err) => {
+  console.error('PostgreSQL error', err);
+});
 
-// Health check
-export function checkDatabase(): boolean {
+export const db = drizzle(pool, { schema });
+
+export async function checkDatabase(): Promise<boolean> {
   try {
-    sqlite.prepare('SELECT 1').get();
+    await pool.query('SELECT 1');
     return true;
   } catch {
     return false;

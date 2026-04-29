@@ -1,7 +1,6 @@
 version: '3.8'
 
 services:
-  # API Server
   api:
     build:
       context: ./apps/api
@@ -12,24 +11,21 @@ services:
       - NODE_ENV=production
       - PORT=3000
       - DATABASE_URL=postgres://openchain:openchain@db:5432/openchain
-      - NATS_URL=nats://nats:4222
-      - OLLAMA_HOST=https://api.ollama.com
-      - OLLAMA_TOKEN=${OLLAMA_CLOUD_TOKEN}
-      - JWT_SECRET=${JWT_SECRET}
+      - OLLAMA_HOST=http://host.docker.internal:11434
+      - JWT_SECRET=change-this-in-production
       - SANDBOX_CPU_LIMIT=1
       - SANDBOX_MEMORY_LIMIT=512m
       - CIRCUIT_BREAKER_MAX_REVISIONS=3
     depends_on:
-      - db
-      - nats
+      db:
+        condition: service_healthy
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
     networks:
       - openchain
 
-  # PostgreSQL Database
   db:
-    image: pgvector/pgvector:pg16
+    image: ankane/pgvector:latest
     environment:
       - POSTGRES_USER=openchain
       - POSTGRES_PASSWORD=openchain
@@ -38,20 +34,14 @@ services:
       - postgres_data:/var/lib/postgresql/data
     ports:
       - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U openchain"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
     networks:
       - openchain
 
-  # NATS Message Broker
-  nats:
-    image: nats:2-alpine
-    ports:
-      - "4222:4222"
-      - "8222:8222"
-    command: "-js -m 8222"
-    networks:
-      - openchain
-
-  # React Frontend
   web:
     build:
       context: ./apps/web

@@ -1,14 +1,14 @@
 import { FastifyInstance } from 'fastify';
 import { z } from 'zod';
 import { eq } from 'drizzle-orm';
-import { db } from '../db/sqlite.js';
-import { agents, tasks } from '../db/schema-sqlite.js';
-import { executeAgentTask } from '../services/agents.js';
+import { db } from '../db/index.js';
+import { agents, tasks } from '../db/schema.js';
 
 const createAgentSchema = z.object({
   name: z.string().min(1).max(255),
-  adapterType: z.enum(['openclaw', 'hermes', 'claude', 'codex']),
+  adapterType: z.enum(['openclaw', 'hermes', 'claude', 'codex', 'custom']),
   role: z.string().optional(),
+  companyId: z.string().uuid().optional(),
 });
 
 export async function agentRoutes(fastify: FastifyInstance) {
@@ -21,7 +21,7 @@ export async function agentRoutes(fastify: FastifyInstance) {
   // GET /api/v1/agents/:id
   fastify.get('/:id', async (request, reply) => {
     const { id } = request.params as { id: string };
-    const [agent] = await db.select().from(agents).where(eq(agents.id, parseInt(id)));
+    const [agent] = await db.select().from(agents).where(eq(agents.id, id));
 
     if (!agent) {
       return reply.status(404).send({ error: 'Agent not found' });
@@ -34,59 +34,70 @@ export async function agentRoutes(fastify: FastifyInstance) {
   fastify.post('/', async (request, reply) => {
     const body = createAgentSchema.parse(request.body);
 
-    const result = await db.insert(agents).values({
+    const [agent] = await db.insert(agents).values({
       ...body,
       status: 'idle',
     }).returning();
 
-    return reply.status(201).send({ agent: result[0] });
+    return reply.status(201).send({ agent });
   });
 
-  // POST /api/v1/agents/:id/execute
-  fastify.post('/:id/execute', async (request, reply) => {
+  // PUT /api/v1/agents/:id
+  fastify.put('/:id', async (request, reply) => {
     const { id } = request.params as { id: string };
-    const { task } = request.body as { task: string };
+    const body = createAgentSchema.partial().parse(request.body);
 
-    const [agent] = await db.select().from(agents).where(eq(agents.id, parseInt(id)));
+    const [agent] = await db.update(agents).set({
+      ...body,
+    }).where(eq(agents.id, id)).returning();
 
     if (!agent) {
       return reply.status(404).send({ error: 'Agent not found' });
     }
 
-    // Update status to working
-    await db.update(agents).set({ status: 'working' }).where(eq(agents.id, parseInt(id)));
+    return { agent };
+  });
 
-    try {
-      const result = await executeAgentTask(agent.adapterType, task);
+  // DELETE /api/v1/agents/:id
+  fastify.delete('/:id', async (request, reply) => {
+    const { id } = request.params as { id: string };
+    const [agent] = await db.delete(agents).where(eq(agents.id, id)).returning();
 
-      // Update status back to idle
-      await db.update(agents).set({
-        status: result.success ? 'idle' : 'error',
-        lastHeartbeat: new Date(),
-      }).where(eq(agents.id, parseInt(id)));
-
-      return { success: result.success, result: result.result };
-    } catch (error) {
-      await db.update(agents).set({
-        status: 'error',
-        lastHeartbeat: new Date(),
-      }).where(eq(agents.id, parseInt(id)));
-
-      return reply.status(500).send({ error: error.message });
+    if (!agent) {
+      return reply.status(404).send({ error: 'Agent not found' });
     }
+
+    return reply.status(204).send();
   });
 
   // POST /api/v1/agents/:id/pause
   fastify.post('/:id/pause', async (request, reply) => {
     const { id } = request.params as { id: string };
-    await db.update(agents).set({ status: 'paused' }).where(eq(agents.id, parseInt(id)));
-    return { message: 'Agent paused' };
+    const [agent] = await db.update(agents).set({ status: 'paused' }).where(eq(agents.id, id)).returning();
+
+    if (!agent) {
+      return reply.status(404).send({ error: 'Agent not found' });
+    }
+
+    return { agent };
   });
 
   // POST /api/v1/agents/:id/resume
   fastify.post('/:id/resume', async (request, reply) => {
     const { id } = request.params as { id: string };
-    await db.update(agents).set({ status: 'idle' }).where(eq(agents.id, parseInt(id)));
-    return { message: 'Agent resumed' };
+    const [agent] = await db.update(agents).set({ status: 'idle' }).where(eq(agents.id, id)).returning();
+
+    if (!agent) {
+      return reply.status(404).send({ error: 'Agent not found' });
+    }
+
+    return { agent };
+  });
+
+  // GET /api/v1/agents/:id/tasks
+  fastify.get('/:id/tasks', async (request, reply) => {
+    const { id } = request.params as { id: string };
+    const agentTasks = await db.select().from(tasks).where(eq(tasks.assigneeId, id));
+    return { tasks: agentTasks };
   });
 }
